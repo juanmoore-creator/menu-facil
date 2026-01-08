@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useActionState } from 'react'
+import { useState, useEffect, useActionState } from 'react'
 import { updateProfile } from '../actions'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -39,18 +39,20 @@ export default function SettingsForm({ initialData }: SettingsFormProps) {
     const [slug, setSlug] = useState(initialData.slug)
     const [fontFamily, setFontFamily] = useState(initialData.font_family || 'Inter')
     const [currentUrl, setCurrentUrl] = useState('')
+    const [mounted, setMounted] = useState(false)
 
     // Update URL preview when slug changes
     const handleSlugChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSlug(e.target.value)
     }
 
-    // Set current URL on mount for QR code
-    useState(() => {
+    // Set current URL and mounted state on mount
+    useEffect(() => {
+        setMounted(true)
         if (typeof window !== 'undefined') {
             setCurrentUrl(window.location.origin)
         }
-    })
+    }, [])
 
     // Show toast on state change
     if (state?.error) {
@@ -187,18 +189,22 @@ export default function SettingsForm({ initialData }: SettingsFormProps) {
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="flex flex-col items-center space-y-4">
-                        <div className="bg-white p-4 rounded-lg border shadow-sm">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                                src={qrCodeUrl}
-                                alt={`QR Code para ${publicUrl}`}
-                                className="w-48 h-48 object-contain"
-                            />
+                        <div className="bg-white p-4 rounded-lg border shadow-sm flex items-center justify-center min-h-[200px] min-w-[200px]">
+                            {mounted ? (
+                                /* eslint-disable-next-line @next/next/no-img-element */
+                                <img
+                                    src={qrCodeUrl}
+                                    alt={`QR Code para ${publicUrl}`}
+                                    className="w-48 h-48 object-contain"
+                                />
+                            ) : (
+                                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                            )}
                         </div>
                         <div className="space-y-1 text-center">
                             <p className="text-sm font-medium">Enlace público:</p>
                             <Link href={`/${slug}`} target="_blank" className="text-sm text-blue-600 hover:underline flex items-center justify-center gap-1">
-                                {publicUrl} <ExternalLink className="h-3 w-3" />
+                                {mounted ? publicUrl : '...'} <ExternalLink className="h-3 w-3" />
                             </Link>
                         </div>
                         <Button variant="outline" onClick={() => {
