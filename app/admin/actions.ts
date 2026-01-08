@@ -63,3 +63,52 @@ export async function deleteProduct(id: string) {
     await supabase.from('products').delete().eq('id', id)
     revalidatePath('/admin')
 }
+
+export async function updateProfile(prevState: any, formData: FormData) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+        return { error: "No autorizado" }
+    }
+
+    const name = formData.get('name') as string
+    const slug = formData.get('slug') as string
+    const whatsapp_number = formData.get('whatsapp_number') as string
+    const theme_color = formData.get('theme_color') as string
+    const font_family = formData.get('font_family') as string
+
+    // Validate slug
+    const slugRegex = /^[a-z0-9-]+$/
+    if (!slugRegex.test(slug)) {
+        return { error: "El URL solo puede contener letras minúsculas, números y guiones." }
+    }
+
+    // Check slug uniqueness
+    const { data: existingSlug } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('slug', slug)
+        .neq('id', user.id)
+        .single()
+
+    if (existingSlug) {
+        return { error: "Este URL ya está en uso. Por favor elige otro." }
+    }
+
+    const { error } = await supabase.from('profiles').update({
+        name,
+        slug,
+        whatsapp_number,
+        theme_color,
+        font_family,
+        updated_at: new Date().toISOString()
+    }).eq('id', user.id)
+
+    if (error) {
+        return { error: "Error al actualizar el perfil." }
+    }
+
+    revalidatePath('/admin/settings')
+    return { success: "Perfil actualizado correctamente." }
+}
