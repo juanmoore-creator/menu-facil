@@ -40,16 +40,24 @@ export async function createProduct(categoryId: string, formData: FormData) {
     const name = formData.get('name') as string
     const price = Number(formData.get('price'))
 
-    if (!name || !categoryId) return
+    if (!name || !categoryId) {
+        return { error: "Nombre y categoría son requeridos" }
+    }
 
-    await supabase.from('products').insert({
+    const { error } = await supabase.from('products').insert({
         name,
         price: isNaN(price) ? 0 : price,
         category_id: categoryId,
         is_available: true
     })
 
+    if (error) {
+        console.error("Error creating product:", error)
+        return { error: "Error al crear el producto: " + error.message }
+    }
+
     revalidatePath('/admin')
+    return { success: true }
 }
 
 export async function deleteCategory(id: string) {
@@ -65,11 +73,13 @@ export async function deleteProduct(id: string) {
 }
 
 export async function updateProfile(prevState: any, formData: FormData) {
+    console.log("Updating profile starts...");
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
 
-    if (!user) {
-        return { error: "No autorizado" }
+    if (authError || !user) {
+        console.error("Auth error:", authError);
+        return { error: "No autorizado o sesión expirada." }
     }
 
     const name = formData.get('name') as string
@@ -78,6 +88,8 @@ export async function updateProfile(prevState: any, formData: FormData) {
     const theme_color = formData.get('theme_color') as string
     const font_family = formData.get('font_family') as string
 
+    console.log("Data to update:", { name, slug, whatsapp_number, theme_color, font_family, userId: user.id });
+
     // Validate slug
     const slugRegex = /^[a-z0-9-]+$/
     if (!slugRegex.test(slug)) {
@@ -85,29 +97,35 @@ export async function updateProfile(prevState: any, formData: FormData) {
     }
 
     // Check slug uniqueness
-    const { data: existingSlug } = await supabase
+    const { data: existingSlug, error: slugCheckError } = await supabase
         .from('profiles')
         .select('id')
         .eq('slug', slug)
         .neq('id', user.id)
         .single()
 
+    // .single() returns error if no rows found which is GOOD here, or if multiple found
+    // We only care if we FOUND a row (data is not null)
+
     if (existingSlug) {
         return { error: "Este URL ya está en uso. Por favor elige otro." }
     }
 
-    const { error } = await supabase.from('profiles').update({
+    const { error, data } = await supabase.from('profiles').update({
         name,
         slug,
         whatsapp_number,
         theme_color,
         font_family,
         updated_at: new Date().toISOString()
-    }).eq('id', user.id)
+    }).eq('id', user.id).select()
 
     if (error) {
-        return { error: "Error al actualizar el perfil." }
+        console.error("Supabase Update Error:", error);
+        return { error: `Error al actualizar el perfil: ${error.message} (${error.code})` }
     }
+
+    console.log("Update success:", data);
 
     revalidatePath('/admin/settings')
     return { success: "Perfil actualizado correctamente." }

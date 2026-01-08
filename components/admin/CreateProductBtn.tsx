@@ -23,15 +23,13 @@ export function CreateProductBtn({ categoryId }: CreateProductBtnProps) {
     const [open, setOpen] = useState(false)
 
     async function handleSubmit(formData: FormData) {
-        // We need to pass the categoryId. 
-        // options: 
-        // 1. Hidden input (easiest for formData)
-        // 2. Bind (handled in the component wrapper or passed differently)
-        // The action expects (categoryId, formData) but when used in action={} prop it only sends formData.
-        // We can use a wrapper or bind.
+        const result = await createProduct(categoryId, formData)
 
-        await createProduct(categoryId, formData)
-        setOpen(false)
+        if (result?.error) {
+            alert(result.error)
+        } else {
+            setOpen(false)
+        }
     }
 
     return (
