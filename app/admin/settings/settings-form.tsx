@@ -133,12 +133,13 @@ export default function SettingsForm({ initialData }: SettingsFormProps) {
                                 <div className="space-y-2">
                                     <Label htmlFor="theme_color">Color del Tema</Label>
                                     <div className="flex gap-2">
-                                        id="theme_color"
-                                        name="theme_color"
-                                        type="color"
-                                        value={themeColor}
-                                        onChange={(e) => setThemeColor(e.target.value)}
-                                        className="w-12 h-10 p-1 cursor-pointer"
+                                        <Input
+                                            id="theme_color"
+                                            name="theme_color"
+                                            type="color"
+                                            value={themeColor}
+                                            onChange={(e) => setThemeColor(e.target.value)}
+                                            className="w-12 h-10 p-1 cursor-pointer"
                                         />
                                         <Input
                                             value={themeColor}
