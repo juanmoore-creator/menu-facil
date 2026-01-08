@@ -124,8 +124,7 @@ export async function updateProfile(prevState: any, formData: FormData) {
         slug,
         whatsapp_number,
         theme_color,
-        font_family,
-        updated_at: new Date().toISOString()
+        font_family
     })
 
     if (error) {
