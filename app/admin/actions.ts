@@ -80,23 +80,25 @@ export async function deleteProduct(id: string) {
 }
 
 export async function updateProfile(prevState: any, formData: FormData) {
-    console.log("=== UPDATE PROFILE START ===");
     const supabase = await createClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
         console.error("Auth error:", authError);
-        return { error: "No autorizado o sesión expirada." }
+        return { error: "No autorizado o sesión expirada. Por favor re-inicia sesión." }
     }
 
-    const name = formData.get('name') as string
-    const slug = formData.get('slug') as string
-    const whatsapp_number = formData.get('whatsapp_number') as string
+    const name = (formData.get('name') as string)?.trim()
+    const slug = (formData.get('slug') as string)?.trim()?.toLowerCase()
+    const whatsapp_number = (formData.get('whatsapp_number') as string)?.trim()
     const theme_color = formData.get('theme_color') as string
     const font_family = formData.get('font_family') as string
 
-    console.log("User ID:", user.id);
-    console.log("Attempting to save:", { name, slug, whatsapp_number, theme_color, font_family });
+    console.log("=== DEBUG SAVE ===");
+    console.log("User:", user.id);
+    console.log("Data:", { name, slug, whatsapp_number, theme_color, font_family });
+
+    if (!slug) return { error: "El URL es requerido." }
 
     // Validate slug
     const slugRegex = /^[a-z0-9-]+$/
@@ -105,12 +107,16 @@ export async function updateProfile(prevState: any, formData: FormData) {
     }
 
     // Check slug uniqueness
-    const { data: existingSlug } = await supabase
+    const { data: existingSlug, error: slugError } = await supabase
         .from('profiles')
         .select('id')
         .eq('slug', slug)
         .neq('id', user.id)
         .maybeSingle()
+
+    if (slugError) {
+        return { error: `Error verificando URL: ${slugError.message}` }
+    }
 
     if (existingSlug) {
         return { error: "Este URL ya está en uso. Por favor elige otro." }
@@ -123,15 +129,19 @@ export async function updateProfile(prevState: any, formData: FormData) {
         whatsapp_number,
         theme_color,
         font_family,
-    }).select()
+    }, { onConflict: 'id' }).select()
 
     if (error) {
         console.error("Supabase Upsert Error:", error);
-        return { error: `Error al guardar: ${error.message}` }
+        return { error: `Error al guardar: ${error.message} (Código: ${error.code})` }
     }
 
-    console.log("Upsert success, data returned:", data);
+    if (!data || data.length === 0) {
+        console.error("No data returned from upsert");
+        return { error: "No se guardó el cambio. Es posible que no tengas permisos (RLS)." }
+    }
 
+    console.log("Save successful:", data);
     revalidatePath('/admin/settings')
-    return { success: "Configuración guardada correctamente." }
+    return { success: `¡Configuración guardada! (ID: ${user.id.substring(0, 8)})` }
 }

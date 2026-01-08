@@ -57,14 +57,25 @@ export default function SettingsForm({ initialData }: SettingsFormProps) {
         }
     }, [])
 
-    // Show toast on state change
+    // Show toast on state change and sync if success
     useEffect(() => {
         if (state?.error) {
             toast.error(state.error)
         } else if (state?.success) {
             toast.success(state.success)
+            // Force local state to match what we sent just in case
+            // Actually, initialData will update due to revalidatePath
         }
     }, [state])
+
+    // Sync state when initialData changes (e.g. after revalidatePath)
+    useEffect(() => {
+        setName(initialData.name)
+        setSlug(initialData.slug)
+        setWhatsapp(initialData.whatsapp_number)
+        setThemeColor(initialData.theme_color || '#000000')
+        setFontFamily(initialData.font_family || 'Inter')
+    }, [initialData])
 
     const publicUrl = `${currentUrl}/${slug}`
     const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(publicUrl)}`
