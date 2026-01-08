@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
     DndContext,
     closestCenter,
@@ -19,19 +19,31 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { GripVertical, Pencil, Trash2 } from 'lucide-react'
-import { updateCategoryOrder } from '@/app/admin/actions'
+import { updateCategoryOrder, deleteCategory, deleteProduct } from '@/app/admin/actions'
 import { Database } from '@/types/supabase'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { CreateProductBtn } from './CreateProductBtn'
 
 type Category = Database['public']['Tables']['categories']['Row']
+type Product = Database['public']['Tables']['products']['Row']
+
+export type CategoryWithProducts = Category & {
+    products: Product[]
+}
 
 interface CategoryListProps {
-    initialCategories: Category[]
+    initialCategories: CategoryWithProducts[]
 }
 
 export function CategoryList({ initialCategories }: CategoryListProps) {
     const [items, setItems] = useState(initialCategories)
+
+    // Sync with server data if initialCategories changes (revalidation)
+    useEffect(() => {
+        setItems(initialCategories)
+    }, [initialCategories])
+
 
     const sensors = useSensors(
         useSensor(PointerSensor),
@@ -73,7 +85,7 @@ export function CategoryList({ initialCategories }: CategoryListProps) {
                 items={items}
                 strategy={verticalListSortingStrategy}
             >
-                <div className="space-y-2">
+                <div className="space-y-4">
                     {items.map((category) => (
                         <CategoryItem key={category.id} category={category} />
                     ))}
@@ -83,7 +95,7 @@ export function CategoryList({ initialCategories }: CategoryListProps) {
     )
 }
 
-function CategoryItem({ category }: { category: Category }) {
+function CategoryItem({ category }: { category: CategoryWithProducts }) {
     const {
         attributes,
         listeners,
@@ -100,37 +112,73 @@ function CategoryItem({ category }: { category: Category }) {
         position: 'relative' as const,
     }
 
+    // Sort products by some criteria if needed, or rely on server order.
+    // Server query was: .order('id', { foreignTable: 'products' })
+
     return (
         <div ref={setNodeRef} style={style}>
-            <Card className={`flex items-center p-4 ${isDragging ? 'shadow-lg ring-2 ring-primary opacity-80' : ''}`}>
-                <div
-                    {...attributes}
-                    {...listeners}
-                    className="cursor-grab p-1 mr-3 text-muted-foreground hover:text-foreground active:cursor-grabbing outline-none rounded hover:bg-muted"
-                >
-                    <GripVertical size={20} />
+            <Card className={`p-4 ${isDragging ? 'shadow-lg ring-2 ring-primary opacity-80' : ''}`}>
+                <div className="flex items-center mb-4">
+                    <div
+                        {...attributes}
+                        {...listeners}
+                        className="cursor-grab p-1 mr-3 text-muted-foreground hover:text-foreground active:cursor-grabbing outline-none rounded hover:bg-muted"
+                    >
+                        <GripVertical size={20} />
+                    </div>
+
+                    <div className="flex-1 font-medium text-lg">
+                        {category.name}
+                    </div>
+
+                    <div className="flex gap-2">
+                        <CreateProductBtn categoryId={category.id} />
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => console.log('Edit', category.id)}
+                        >
+                            <Pencil size={18} />
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={async () => {
+                                if (confirm('¿Seguro que deseas eliminar esta categoría?')) {
+                                    await deleteCategory(category.id)
+                                }
+                            }}
+                        >
+                            <Trash2 size={18} />
+                        </Button>
+                    </div>
                 </div>
 
-                <div className="flex-1 font-medium">
-                    {category.name}
-                </div>
-
-                <div className="flex gap-2">
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => console.log('Edit', category.id)}
-                    >
-                        <Pencil size={18} />
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => console.log('Delete', category.id)}
-                    >
-                        <Trash2 size={18} />
-                    </Button>
+                <div className="pl-10">
+                    {category.products && category.products.length > 0 ? (
+                        <ul className="space-y-2">
+                            {category.products.map(product => (
+                                <li key={product.id} className="flex items-center justify-between p-2 bg-muted/50 rounded-md">
+                                    <span>{product.name} - ${product.price}</span>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-8 w-8 text-destructive p-0"
+                                        onClick={async () => {
+                                            if (confirm('¿Eliminar producto?')) {
+                                                await deleteProduct(product.id)
+                                            }
+                                        }}
+                                    >
+                                        <Trash2 size={14} />
+                                    </Button>
+                                </li>
+                            ))}
+                        </ul>
+                    ) : (
+                        <p className="text-sm text-muted-foreground italic">No hay productos en esta categoría</p>
+                    )}
                 </div>
             </Card>
         </div>
