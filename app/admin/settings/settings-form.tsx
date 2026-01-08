@@ -37,6 +37,7 @@ interface SettingsFormProps {
 export default function SettingsForm({ initialData }: SettingsFormProps) {
     const [state, formAction, isPending] = useActionState(updateProfile, null)
     const [slug, setSlug] = useState(initialData.slug)
+    const [fontFamily, setFontFamily] = useState(initialData.font_family || 'Inter')
     const [currentUrl, setCurrentUrl] = useState('')
 
     // Update URL preview when slug changes
@@ -55,7 +56,7 @@ export default function SettingsForm({ initialData }: SettingsFormProps) {
     if (state?.error) {
         toast.error(state.error)
     } else if (state?.success) {
-        toast.success(state.success)
+        toast.success(typeof state.success === 'string' ? state.success : "Cambios guardados correctly")
     }
 
     const publicUrl = `${currentUrl}/${slug}`
@@ -95,7 +96,7 @@ export default function SettingsForm({ initialData }: SettingsFormProps) {
                                         onChange={handleSlugChange}
                                         required
                                         placeholder="tacos-el-rey"
-                                        pattern="[a-z0-9\-]+"
+                                        pattern="^[a-z0-9-]+$"
                                         title="Solo letras minúsculas, números y guiones"
                                     />
                                 </div>
@@ -140,7 +141,11 @@ export default function SettingsForm({ initialData }: SettingsFormProps) {
 
                                 <div className="space-y-2">
                                     <Label htmlFor="font_family">Tipografía</Label>
-                                    <Select name="font_family" defaultValue={initialData.font_family || 'Inter'}>
+                                    <input type="hidden" name="font_family" value={fontFamily} />
+                                    <Select
+                                        defaultValue={fontFamily}
+                                        onValueChange={setFontFamily}
+                                    >
                                         <SelectTrigger>
                                             <SelectValue placeholder="Selecciona una fuente" />
                                         </SelectTrigger>
