@@ -62,6 +62,7 @@ export interface Database {
                 Row: {
                     id: string
                     category_id: string
+                    profile_id: string
                     name: string
                     price: number
                     description: string | null
@@ -71,6 +72,7 @@ export interface Database {
                 Insert: {
                     id?: string
                     category_id: string
+                    profile_id?: string
                     name: string
                     price: number
                     description?: string | null

@@ -37,6 +37,12 @@ export async function createCategory(formData: FormData) {
 
 export async function createProduct(categoryId: string, formData: FormData) {
     const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+        return { error: "No autorizado" }
+    }
+
     const name = formData.get('name') as string
     const price = Number(formData.get('price'))
 
@@ -48,6 +54,7 @@ export async function createProduct(categoryId: string, formData: FormData) {
         name,
         price: isNaN(price) ? 0 : price,
         category_id: categoryId,
+        profile_id: user.id,
         is_available: true
     })
 
