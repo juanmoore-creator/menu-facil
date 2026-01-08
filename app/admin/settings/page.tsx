@@ -2,6 +2,8 @@ import { createClient } from '@/utils/supabase-server'
 import { redirect } from 'next/navigation'
 import SettingsForm from './settings-form'
 
+export const dynamic = 'force-dynamic'
+
 export default async function SettingsPage() {
     const supabase = await createClient()
 
@@ -31,7 +33,7 @@ export default async function SettingsPage() {
                 </p>
             </div>
 
-            <SettingsForm initialData={profile} />
+            <SettingsForm initialData={profile} key={profile.id + '-' + profile.slug} />
         </div>
     )
 }

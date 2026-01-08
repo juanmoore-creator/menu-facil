@@ -79,59 +79,58 @@ export async function deleteProduct(id: string) {
     revalidatePath('/admin')
 }
 
-export async function updateProfile(prevState: any, formData: FormData) {
-    console.log("Updating profile starts...");
-    const supabase = await createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+console.log("=== UPDATE PROFILE START ===");
+const supabase = await createClient()
+const { data: { user }, error: authError } = await supabase.auth.getUser()
 
-    if (authError || !user) {
-        console.error("Auth error:", authError);
-        return { error: "No autorizado o sesión expirada." }
-    }
+if (authError || !user) {
+    console.error("Auth error:", authError);
+    return { error: "No autorizado o sesión expirada." }
+}
 
-    const name = formData.get('name') as string
-    const slug = formData.get('slug') as string
-    const whatsapp_number = formData.get('whatsapp_number') as string
-    const theme_color = formData.get('theme_color') as string
-    const font_family = formData.get('font_family') as string
+const name = formData.get('name') as string
+const slug = formData.get('slug') as string
+const whatsapp_number = formData.get('whatsapp_number') as string
+const theme_color = formData.get('theme_color') as string
+const font_family = formData.get('font_family') as string
 
-    console.log("Data to update:", { name, slug, whatsapp_number, theme_color, font_family, userId: user.id });
+console.log("User ID:", user.id);
+console.log("Attempting to save:", { name, slug, whatsapp_number, theme_color, font_family });
 
-    // Validate slug
-    const slugRegex = /^[a-z0-9-]+$/
-    if (!slugRegex.test(slug)) {
-        return { error: "El URL solo puede contener letras minúsculas, números y guiones." }
-    }
+// Validate slug
+const slugRegex = /^[a-z0-9-]+$/
+if (!slugRegex.test(slug)) {
+    return { error: "El URL solo puede contener letras minúsculas, números y guiones." }
+}
 
-    // Check slug uniqueness
-    const { data: existingSlug, error: slugCheckError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('slug', slug)
-        .neq('id', user.id)
-        .single()
+// Check slug uniqueness
+const { data: existingSlug } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('slug', slug)
+    .neq('id', user.id)
+    .maybeSingle()
 
-    // .single() returns error if no rows found which is GOOD here, or if multiple found
-    // We only care if we FOUND a row (data is not null)
+if (existingSlug) {
+    return { error: "Este URL ya está en uso. Por favor elige otro." }
+}
 
-    if (existingSlug) {
-        return { error: "Este URL ya está en uso. Por favor elige otro." }
-    }
+const { error, data } = await supabase.from('profiles').upsert({
+    id: user.id,
+    name,
+    slug,
+    whatsapp_number,
+    theme_color,
+    font_family,
+}).select()
 
-    const { error } = await supabase.from('profiles').upsert({
-        id: user.id,
-        name,
-        slug,
-        whatsapp_number,
-        theme_color,
-        font_family
-    })
+if (error) {
+    console.error("Supabase Upsert Error:", error);
+    return { error: `Error al guardar: ${error.message}` }
+}
 
-    if (error) {
-        console.error("Supabase Upsert Error:", error);
-        return { error: `Error al guardar el perfil: ${error.message}` }
-    }
+console.log("Upsert success, data returned:", data);
 
-    revalidatePath('/admin/settings')
-    return { success: "Configuración guardada correctamente." }
+revalidatePath('/admin/settings')
+return { success: "Configuración guardada correctamente." }
 }

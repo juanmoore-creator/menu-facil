@@ -36,7 +36,10 @@ interface SettingsFormProps {
 
 export default function SettingsForm({ initialData }: SettingsFormProps) {
     const [state, formAction, isPending] = useActionState(updateProfile, null)
+    const [name, setName] = useState(initialData.name)
     const [slug, setSlug] = useState(initialData.slug)
+    const [whatsapp, setWhatsapp] = useState(initialData.whatsapp_number)
+    const [themeColor, setThemeColor] = useState(initialData.theme_color || '#000000')
     const [fontFamily, setFontFamily] = useState(initialData.font_family || 'Inter')
     const [currentUrl, setCurrentUrl] = useState('')
     const [mounted, setMounted] = useState(false)
@@ -55,11 +58,13 @@ export default function SettingsForm({ initialData }: SettingsFormProps) {
     }, [])
 
     // Show toast on state change
-    if (state?.error) {
-        toast.error(state.error)
-    } else if (state?.success) {
-        toast.success(typeof state.success === 'string' ? state.success : "Cambios guardados correctly")
-    }
+    useEffect(() => {
+        if (state?.error) {
+            toast.error(state.error)
+        } else if (state?.success) {
+            toast.success(state.success)
+        }
+    }, [state])
 
     const publicUrl = `${currentUrl}/${slug}`
     const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(publicUrl)}`
@@ -81,7 +86,8 @@ export default function SettingsForm({ initialData }: SettingsFormProps) {
                                 <Input
                                     id="name"
                                     name="name"
-                                    defaultValue={initialData.name}
+                                    value={name}
+                                    onChange={(e) => setName(e.target.value)}
                                     required
                                     placeholder="Ej: Tacos El Rey"
                                 />
@@ -112,7 +118,8 @@ export default function SettingsForm({ initialData }: SettingsFormProps) {
                                 <Input
                                     id="whatsapp_number"
                                     name="whatsapp_number"
-                                    defaultValue={initialData.whatsapp_number}
+                                    value={whatsapp || ''}
+                                    onChange={(e) => setWhatsapp(e.target.value)}
                                     required
                                     placeholder="5491112345678"
                                     type="tel"
@@ -126,16 +133,16 @@ export default function SettingsForm({ initialData }: SettingsFormProps) {
                                 <div className="space-y-2">
                                     <Label htmlFor="theme_color">Color del Tema</Label>
                                     <div className="flex gap-2">
-                                        <Input
-                                            id="theme_color"
-                                            name="theme_color"
-                                            type="color"
-                                            defaultValue={initialData.theme_color || '#000000'}
-                                            className="w-12 h-10 p-1 cursor-pointer"
+                                        id="theme_color"
+                                        name="theme_color"
+                                        type="color"
+                                        value={themeColor}
+                                        onChange={(e) => setThemeColor(e.target.value)}
+                                        className="w-12 h-10 p-1 cursor-pointer"
                                         />
                                         <Input
-                                            value={initialData.theme_color || '#000000'}
-                                            readOnly
+                                            value={themeColor}
+                                            onChange={(e) => setThemeColor(e.target.value)}
                                             className="flex-1"
                                         />
                                     </div>
@@ -236,10 +243,10 @@ export default function SettingsForm({ initialData }: SettingsFormProps) {
                     </CardHeader>
                     <CardContent>
                         <div className="rounded-lg border p-4 space-y-4 bg-gray-50/50">
-                            <div className="h-8 w-32 bg-gray-200 rounded animate-pulse" style={{ backgroundColor: initialData.theme_color }}></div>
+                            <div className="h-8 w-32 rounded animate-pulse" style={{ backgroundColor: themeColor }}></div>
                             <div className="space-y-2">
-                                <div className="h-4 w-3/4 bg-gray-200 rounded"></div>
-                                <div className="h-4 w-1/2 bg-gray-200 rounded"></div>
+                                <div className="h-4 w-3/4 bg-gray-200 rounded" style={{ fontFamily }}>{name || 'Nombre del Restaurante'}</div>
+                                <div className="h-4 w-1/2 bg-gray-200 rounded">WhatsApp: {whatsapp}</div>
                             </div>
                         </div>
                     </CardContent>
