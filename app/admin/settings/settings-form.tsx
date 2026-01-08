@@ -95,7 +95,7 @@ export default function SettingsForm({ initialData }: SettingsFormProps) {
                                         onChange={handleSlugChange}
                                         required
                                         placeholder="tacos-el-rey"
-                                        pattern="[a-z0-9-]+"
+                                        pattern="[a-z0-9\-]+"
                                         title="Solo letras minúsculas, números y guiones"
                                     />
                                 </div>

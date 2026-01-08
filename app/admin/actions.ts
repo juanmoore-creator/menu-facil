@@ -132,6 +132,30 @@ export async function updateProfile(prevState: any, formData: FormData) {
         return { error: `Error al actualizar el perfil: ${error.message} (${error.code})` }
     }
 
+    if (data && data.length === 0) {
+        console.log("No rows updated. Profile might not exist. Attempting insert...");
+
+        // If update returned 0 rows, it means the row with id=user.id doesn't exist.
+        // We should try to insert it.
+        const { error: insertError, data: insertData } = await supabase.from('profiles').insert({
+            id: user.id,
+            name,
+            slug,
+            whatsapp_number,
+            theme_color,
+            font_family,
+            updated_at: new Date().toISOString()
+        }).select();
+
+        if (insertError) {
+            console.error("Supabase Insert Error:", insertError);
+            return { error: `Error al crear el perfil: ${insertError.message}` }
+        }
+        console.log("Insert success:", insertData);
+        revalidatePath('/admin/settings')
+        return { success: "Perfil creado correctamente." }
+    }
+
     console.log("Update success:", data);
 
     revalidatePath('/admin/settings')
